@@ -97,6 +97,9 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
     private int smartRow;
     private int priorityRow;
     private int priorityInfoRow;
+    private int keywordRow;
+    private int keywordEnabledRow;
+    private int keywordDisabledRow;
     private int popupRow;
     private int popupEnabledRow;
     private int popupDisabledRow;
@@ -186,6 +189,9 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
             priorityRow = -1;
         }
         priorityInfoRow = rowCount++;
+        keywordRow = rowCount++;
+        keywordEnabledRow = rowCount++;
+        keywordDisabledRow = rowCount++;
         boolean isChannel;
         if (DialogObject.isChatDialog(dialogId)) {
             TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
@@ -491,6 +497,20 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                         adapter.notifyItemChanged(colorRow);
                     }
                 }, resourcesProvider));
+            } else if (position == keywordEnabledRow) {
+                MessagesController.getNotificationsSettings(currentAccount).edit().putInt("keyword_" + key, 1).apply();
+                ((RadioCell) view).setChecked(true, true);
+                view = listView.findViewWithTag(4);
+                if (view != null) {
+                    ((RadioCell) view).setChecked(false, true);
+                }
+            } else if (position == keywordDisabledRow) {
+                MessagesController.getNotificationsSettings(currentAccount).edit().putInt("keyword_" + key, 2).apply();
+                ((RadioCell) view).setChecked(true, true);
+                view = listView.findViewWithTag(3);
+                if (view != null) {
+                    ((RadioCell) view).setChecked(false, true);
+                }
             } else if (position == popupEnabledRow) {
                 MessagesController.getNotificationsSettings(currentAccount).edit().putInt("popup_" + key, 1).apply();
                 ((RadioCell) view).setChecked(true, true);
@@ -752,6 +772,8 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                     HeaderCell headerCell = (HeaderCell) holder.itemView;
                     if (position == generalRow) {
                         headerCell.setText(LocaleController.getString("General", R.string.General));
+                    } else if (position == keywordRow) {
+                        headerCell.setText("키워드 알림");
                     } else if (position == popupRow) {
                         headerCell.setText(LocaleController.getString("ProfilePopupNotification", R.string.ProfilePopupNotification));
                     } else if (position == ledRow) {
@@ -889,6 +911,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                     RadioCell radioCell = (RadioCell) holder.itemView;
                     SharedPreferences preferences = MessagesController.getNotificationsSettings(currentAccount);
                     String key = NotificationsController.getSharedPrefKey(dialogId, topicId);
+                    int keyword = preferences.getInt("keyword_" + key, 0);
                     int popup = preferences.getInt("popup_" + key, 0);
                     if (popup == 0) {
                         popup = preferences.getInt(DialogObject.isChatDialog(dialogId) ? "popupGroup" : "popupAll", 0);
@@ -897,6 +920,13 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                         } else {
                             popup = 2;
                         }
+                    }
+                    if (position == keywordEnabledRow) {
+                        radioCell.setText("사용", keyword == 1, true);
+                        radioCell.setTag(3);
+                    } else if (position == keywordDisabledRow) {
+                        radioCell.setText("사용 안 함", keyword == 2, false);
+                        radioCell.setTag(4);
                     }
                     if (position == popupEnabledRow) {
                         radioCell.setText(LocaleController.getString("PopupEnabled", R.string.PopupEnabled), popup == 1, true);
@@ -988,7 +1018,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
 
         @Override
         public int getItemViewType(int position) {
-            if (position == generalRow || position == popupRow || position == ledRow || position == callsRow) {
+            if (position == generalRow || position == keywordRow || position == popupRow || position == ledRow || position == callsRow) {
                 return VIEW_TYPE_HEADER;
             } else if (position == soundRow || position == vibrateRow || position == priorityRow || position == smartRow || position == ringtoneRow || position == callsVibrateRow || position == customResetRow) {
                 return VIEW_TYPE_TEXT_SETTINGS;
@@ -996,7 +1026,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                 return VIEW_TYPE_INFO;
             } else if (position == colorRow) {
                 return VIEW_TYPE_TEXT_COLOR;
-            } else if (position == popupEnabledRow || position == popupDisabledRow) {
+            } else if (position == keywordEnabledRow || position == keywordDisabledRow || position == popupEnabledRow || position == popupDisabledRow) {
                 return VIEW_TYPE_RADIO;
             } else if (position == avatarRow) {
                 return VIEW_TYPE_USER;
