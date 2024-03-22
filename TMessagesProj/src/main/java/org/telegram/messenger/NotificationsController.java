@@ -48,6 +48,7 @@ import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Pair;
 import android.util.SparseArray;
 import android.util.SparseBooleanArray;
@@ -64,8 +65,11 @@ import androidx.core.content.pm.ShortcutManagerCompat;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.graphics.drawable.IconCompat;
 
+import com.google.android.exoplayer2.util.Log;
+
 import org.telegram.messenger.support.LongSparseIntArray;
 import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.BubbleActivity;
@@ -3979,12 +3983,37 @@ public class NotificationsController extends BaseController {
             if (dialogsNotificationsFacade.getProperty("custom_", dialog_id, topicId, false)) {
                 customVibrate = dialogsNotificationsFacade.getProperty("vibrate_", dialog_id, topicId, 0);
                 customImportance = dialogsNotificationsFacade.getProperty("priority_", dialog_id, topicId, 3);
-                long soundDocumentId = dialogsNotificationsFacade.getProperty("sound_document_id_" , dialog_id, topicId, 0L);
-                if (soundDocumentId != 0) {
-                    customIsInternalSound = true;
-                    customSoundPath = getMediaDataController().ringtoneDataStore.getSoundPath(soundDocumentId);
+
+                List<String> keywordList = new ArrayList<>();
+                String list = preferences.getString("keyword_list_" + key, null);
+                if (!TextUtils.isEmpty(list)) {
+                    byte[] bytes = Base64.decode(list, Base64.DEFAULT);
+                    SerializedData data = new SerializedData(bytes);
+                    int count = data.readInt32(false);
+
+                    for (int i = 0; i < count; i++) {
+                        String keyword = data.readString(false);
+                        keywordList.add(0, keyword);
+                    }
+                }
+
+                boolean containsAny = keywordList.stream().anyMatch(lastMessage::contains);
+                if(containsAny) {
+                    long soundDocumentId = dialogsNotificationsFacade.getProperty("keyword_sound_document_id_", dialog_id, topicId, 0L);
+                    if (soundDocumentId != 0) {
+                        customIsInternalSound = true;
+                        customSoundPath = getMediaDataController().ringtoneDataStore.getSoundPath(soundDocumentId);
+                    } else {
+                        customSoundPath = dialogsNotificationsFacade.getPropertyString("keyword_sound_path_", dialog_id, topicId, null);
+                    }
                 } else {
-                    customSoundPath = dialogsNotificationsFacade.getPropertyString("sound_path_" , dialog_id, topicId, null);
+                    long soundDocumentId = dialogsNotificationsFacade.getProperty("sound_document_id_", dialog_id, topicId, 0L);
+                    if (soundDocumentId != 0) {
+                        customIsInternalSound = true;
+                        customSoundPath = getMediaDataController().ringtoneDataStore.getSoundPath(soundDocumentId);
+                    } else {
+                        customSoundPath = dialogsNotificationsFacade.getPropertyString("sound_path_", dialog_id, topicId, null);
+                    }
                 }
 
                 int color = dialogsNotificationsFacade.getProperty("color_", dialog_id, topicId, 0);
