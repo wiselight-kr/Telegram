@@ -25,7 +25,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.text.InputType;
+import android.text.TextUtils;
+import android.util.Base64;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -52,6 +53,7 @@ import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.NotificationsController;
 import org.telegram.messenger.R;
+import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -75,7 +77,6 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class ProfileNotificationsActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
@@ -134,7 +135,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
 
     private final static int done_button = 1;
 
-    private List<String> keywordList = new ArrayList<>(Arrays.asList("상장","마켓 추가"));
+    private List<String> keywordList = new ArrayList<>();
 
     public interface ProfileNotificationsActivityDelegate {
         void didCreateNewException(NotificationsSettingsActivity.NotificationException exception);
@@ -166,6 +167,8 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                 }
             }
         }
+
+        loadKeywordList();
 
         rowCount = 0;
         if (addingException) {
@@ -575,11 +578,31 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                         .setMessage("추가할 키워드를 입력하세요.")
                         .setView(linearLayout)
                         .setPositiveButton(LocaleController.getString(R.string.OK), (d, w) -> {
+                            addKeyword(editText.getText().toString());
 
+                            onFragmentCreate();
+                            if (adapter != null) {
+                                adapter.notifyDataSetChanged();
+                            }
                         })
                         .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
                         .create();
                 showDialog(dialog);
+            } else if (position >= keywordStartRow && position < keywordEndRow) {
+                deleteKeyword(keywordList.get(position - keywordStartRow));
+
+                onFragmentCreate();
+                if (adapter != null) {
+                    adapter.notifyDataSetChanged();
+                }
+            } else if (position == keywordDeleteAllRow) {
+                keywordList.clear();
+                saveKeywordList();
+
+                onFragmentCreate();
+                if (adapter != null) {
+                    adapter.notifyDataSetChanged();
+                }
             }
         });
 
@@ -1164,5 +1187,54 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
         themeDescriptions.add(new ThemeDescription(null, 0, null, null, null, cellDelegate, Theme.key_avatar_backgroundPink));
 
         return themeDescriptions;
+    }
+
+    private void loadKeywordList() {
+        keywordList.clear();
+
+        SharedPreferences preferences = MessagesController.getNotificationsSettings(currentAccount);
+
+        String key = NotificationsController.getSharedPrefKey(dialogId, topicId);
+        String list = preferences.getString("keyword_list_" + key, null);
+        if (!TextUtils.isEmpty(list)) {
+            byte[] bytes = Base64.decode(list, Base64.DEFAULT);
+            SerializedData data = new SerializedData(bytes);
+            int count = data.readInt32(false);
+
+            for (int i = 0; i < count; i++) {
+                String keyword = data.readString(false);
+                keywordList.add(0, keyword);
+            }
+        }
+    }
+
+    private void saveKeywordList() {
+        List<String> keywordsToSerialize = new ArrayList<>(keywordList);
+        SerializedData serializedData = new SerializedData();
+        int count = keywordsToSerialize.size();
+        serializedData.writeInt32(count);
+        for (int i = 0; i < count; i++) {
+            String keyword = keywordList.get(i);
+            serializedData.writeString(keyword);
+        }
+
+        SharedPreferences preferences = MessagesController.getNotificationsSettings(currentAccount);
+
+        String key = NotificationsController.getSharedPrefKey(dialogId, topicId);
+        preferences.edit().putString("keyword_list_" + key, Base64.encodeToString(serializedData.toByteArray(), Base64.NO_WRAP)).apply();
+        serializedData.cleanup();
+    }
+
+    private void addKeyword(String keyword) {
+        loadKeywordList();
+        if(keywordList.contains(keyword))
+            return;
+        keywordList.add(keyword);
+        saveKeywordList();
+    }
+
+    private void deleteKeyword(String keyword) {
+        keywordList.remove(keyword);
+        saveKeywordList();
     }
 }
