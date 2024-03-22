@@ -100,8 +100,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
     private int priorityRow;
     private int priorityInfoRow;
     private int keywordRow;
-    private int keywordEnabledRow;
-    private int keywordDisabledRow;
+    private int keywordSoundRow;
     private int keywordStartRow;
     private int keywordEndRow;
     private int keywordAddRow;
@@ -198,8 +197,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
         }
         priorityInfoRow = rowCount++;
         keywordRow = rowCount++;
-        keywordEnabledRow = rowCount++;
-        keywordDisabledRow = rowCount++;
+        keywordSoundRow = rowCount++;
         if (!keywordList.isEmpty()) {
             keywordStartRow = rowCount;
             rowCount += keywordList.size();
@@ -519,20 +517,6 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                         adapter.notifyItemChanged(colorRow);
                     }
                 }, resourcesProvider));
-            } else if (position == keywordEnabledRow) {
-                MessagesController.getNotificationsSettings(currentAccount).edit().putInt("keyword_" + key, 1).apply();
-                ((RadioCell) view).setChecked(true, true);
-                view = listView.findViewWithTag(4);
-                if (view != null) {
-                    ((RadioCell) view).setChecked(false, true);
-                }
-            } else if (position == keywordDisabledRow) {
-                MessagesController.getNotificationsSettings(currentAccount).edit().putInt("keyword_" + key, 2).apply();
-                ((RadioCell) view).setChecked(true, true);
-                view = listView.findViewWithTag(3);
-                if (view != null) {
-                    ((RadioCell) view).setChecked(false, true);
-                }
             } else if (position == popupEnabledRow) {
                 MessagesController.getNotificationsSettings(currentAccount).edit().putInt("popup_" + key, 1).apply();
                 ((RadioCell) view).setChecked(true, true);
@@ -558,6 +542,12 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                     edit.putBoolean("stories_" + key, value);
                 }
                 edit.apply();getNotificationsController().updateServerNotificationsSettings(dialogId, topicId);
+            } else if (position == keywordSoundRow) {
+                Bundle bundle = new Bundle();
+                bundle.putLong("dialog_id", dialogId);
+                bundle.putLong("topic_id", topicId);
+                bundle.putInt("is_keyword", 1);
+                presentFragment(new NotificationsSoundActivity(bundle, resourcesProvider));
             }
         });
 
@@ -880,6 +870,22 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                             } else if (value == 3) {
                                 textCell.setTextAndValue(LocaleController.getString("Vibrate", R.string.Vibrate), LocaleController.getString("Long", R.string.Long), true);
                             }
+                        } else if (position == keywordSoundRow) {
+                            String value = preferences.getString("keyword_sound_" + key, LocaleController.getString("SoundDefault", R.string.SoundDefault));
+                            long documentId = preferences.getLong("keyword_sound_document_id_" + key, 0);
+                            if (documentId != 0) {
+                                TLRPC.Document document = getMediaDataController().ringtoneDataStore.getDocument(documentId);
+                                if (document == null) {
+                                    value = LocaleController.getString("CustomSound", R.string.CustomSound);
+                                } else {
+                                    value = NotificationsSoundActivity.trimTitle(document, document.file_name_fixed);
+                                }
+                            } else if (value.equals("NoSound")) {
+                                value = LocaleController.getString("NoSound", R.string.NoSound);
+                            } else if (value.equals("Default")) {
+                                value = LocaleController.getString("SoundDefault", R.string.SoundDefault);
+                            }
+                            textCell.setTextAndValue(LocaleController.getString("Sound", R.string.Sound), value, true);
                         } else if (position >= keywordStartRow && position < keywordEndRow) {
                             String keyword = keywordList.get(position - keywordStartRow);
                             textCell.setText(keyword, false);
@@ -950,13 +956,6 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                         } else {
                             popup = 2;
                         }
-                    }
-                    if (position == keywordEnabledRow) {
-                        radioCell.setText("사용", keyword == 1, true);
-                        radioCell.setTag(3);
-                    } else if (position == keywordDisabledRow) {
-                        radioCell.setText("사용 안 함", keyword == 2, false);
-                        radioCell.setTag(4);
                     }
                     if (position == popupEnabledRow) {
                         radioCell.setText(LocaleController.getString("PopupEnabled", R.string.PopupEnabled), popup == 1, true);
@@ -1051,13 +1050,13 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
             if (position == generalRow || position == keywordRow || position == popupRow || position == ledRow || position == callsRow) {
                 return VIEW_TYPE_HEADER;
             } else if (position == soundRow || position == vibrateRow || position == priorityRow || position == smartRow || position == ringtoneRow || position == callsVibrateRow || position == customResetRow
-            || position == keywordAddRow || position == keywordDeleteAllRow || position >= keywordStartRow && position < keywordEndRow ) {
+                    || position == keywordSoundRow || position == keywordAddRow || position == keywordDeleteAllRow || position >= keywordStartRow && position < keywordEndRow ) {
                 return VIEW_TYPE_TEXT_SETTINGS;
             }  else if (position == popupInfoRow || position == ledInfoRow || position == priorityInfoRow || position == ringtoneInfoRow) {
                 return VIEW_TYPE_INFO;
             } else if (position == colorRow) {
                 return VIEW_TYPE_TEXT_COLOR;
-            } else if (position == keywordEnabledRow || position == keywordDisabledRow || position == popupEnabledRow || position == popupDisabledRow) {
+            } else if (position == popupEnabledRow || position == popupDisabledRow) {
                 return VIEW_TYPE_RADIO;
             } else if (position == avatarRow) {
                 return VIEW_TYPE_USER;

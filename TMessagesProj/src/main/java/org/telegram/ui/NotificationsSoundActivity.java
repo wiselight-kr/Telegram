@@ -107,6 +107,7 @@ public class NotificationsSoundActivity extends BaseFragment implements ChatAtta
     ChatAvatarContainer avatarContainer;
     long dialogId;
     int currentType = -1;
+    int isKeyword = 0;
 
 
     private Tone startSelectedTone;
@@ -132,13 +133,19 @@ public class NotificationsSoundActivity extends BaseFragment implements ChatAtta
             dialogId = getArguments().getLong("dialog_id", 0);
             topicId = getArguments().getLong("topic_id", 0);
             currentType = getArguments().getInt("type", -1);
+            isKeyword = getArguments().getInt("is_keyword", 0);
         }
         String prefPath;
         String prefDocId;
         if (dialogId != 0) {
             String key = NotificationsController.getSharedPrefKey(dialogId, topicId);
-            prefDocId = "sound_document_id_" + key;
-            prefPath = "sound_path_" + key;
+            if(isKeyword == 1) {
+                prefDocId = "keyword_sound_document_id_" + key;
+                prefPath = "keyword_sound_path_" + key;
+            } else {
+                prefDocId = "sound_document_id_" + key;
+                prefPath = "sound_path_" + key;
+            }
         } else {
             if (currentType == NotificationsController.TYPE_PRIVATE) {
                 prefPath = "GlobalSoundPath";
@@ -864,10 +871,17 @@ public class NotificationsSoundActivity extends BaseFragment implements ChatAtta
             String prefDocId;
 
             if (dialogId != 0) {
-                prefName = "sound_" + NotificationsController.getSharedPrefKey(dialogId, topicId);
-                prefPath = "sound_path_" + NotificationsController.getSharedPrefKey(dialogId, topicId);
-                prefDocId = "sound_document_id_" + NotificationsController.getSharedPrefKey(dialogId, topicId);
-                editor.putBoolean("sound_enabled_" + NotificationsController.getSharedPrefKey(dialogId, topicId), true);
+                if (isKeyword == 1) {
+                    prefName = "keyword_sound_" + NotificationsController.getSharedPrefKey(dialogId, topicId);
+                    prefPath = "keyword_sound_path_" + NotificationsController.getSharedPrefKey(dialogId, topicId);
+                    prefDocId = "keyword_sound_document_id_" + NotificationsController.getSharedPrefKey(dialogId, topicId);
+                    editor.putBoolean("keyword_sound_enabled_" + NotificationsController.getSharedPrefKey(dialogId, topicId), true);
+                } else {
+                    prefName = "sound_" + NotificationsController.getSharedPrefKey(dialogId, topicId);
+                    prefPath = "sound_path_" + NotificationsController.getSharedPrefKey(dialogId, topicId);
+                    prefDocId = "sound_document_id_" + NotificationsController.getSharedPrefKey(dialogId, topicId);
+                    editor.putBoolean("sound_enabled_" + NotificationsController.getSharedPrefKey(dialogId, topicId), true);
+                }
             } else {
                 if (currentType == NotificationsController.TYPE_PRIVATE) {
                     prefName = "GlobalSound";
