@@ -68,6 +68,8 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class ProfileNotificationsActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
@@ -100,6 +102,10 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
     private int keywordRow;
     private int keywordEnabledRow;
     private int keywordDisabledRow;
+    private int keywordStartRow;
+    private int keywordEndRow;
+    private int keywordAddRow;
+    private int keywordDeleteAllRow;
     private int popupRow;
     private int popupEnabledRow;
     private int popupDisabledRow;
@@ -121,6 +127,8 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
     private boolean needReset;
 
     private final static int done_button = 1;
+
+    private List<String> keywordList = new ArrayList<>(Arrays.asList("상장","마켓 추가"));
 
     public interface ProfileNotificationsActivityDelegate {
         void didCreateNewException(NotificationsSettingsActivity.NotificationException exception);
@@ -192,6 +200,20 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
         keywordRow = rowCount++;
         keywordEnabledRow = rowCount++;
         keywordDisabledRow = rowCount++;
+        if (!keywordList.isEmpty()) {
+            keywordStartRow = rowCount;
+            rowCount += keywordList.size();
+            keywordEndRow = rowCount;
+        } else {
+            keywordStartRow = -1;
+            keywordEndRow = -1;
+        }
+        keywordAddRow = rowCount++;
+        if (keywordList.size() >= 10) {
+            keywordDeleteAllRow = rowCount++;
+        } else {
+            keywordDeleteAllRow = -1;
+        }
         boolean isChannel;
         if (DialogObject.isChatDialog(dialogId)) {
             TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
@@ -858,6 +880,14 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                             } else if (value == 3) {
                                 textCell.setTextAndValue(LocaleController.getString("Vibrate", R.string.Vibrate), LocaleController.getString("Long", R.string.Long), true);
                             }
+                        } else if (position >= keywordStartRow && position < keywordEndRow) {
+                            String keyword = keywordList.get(position - keywordStartRow);
+                            textCell.setText(keyword, false);
+                        } else if (position == keywordAddRow) {
+                            textCell.setText("키워드 추가", keywordDeleteAllRow != -1);
+                        } else if (position == keywordDeleteAllRow) {
+                            textCell.setTextColor(Theme.getColor(Theme.key_text_RedRegular));
+                            textCell.setText("키워드 모두 삭제", false);
                         }
                     }
                     break;
@@ -1020,9 +1050,10 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
         public int getItemViewType(int position) {
             if (position == generalRow || position == keywordRow || position == popupRow || position == ledRow || position == callsRow) {
                 return VIEW_TYPE_HEADER;
-            } else if (position == soundRow || position == vibrateRow || position == priorityRow || position == smartRow || position == ringtoneRow || position == callsVibrateRow || position == customResetRow) {
+            } else if (position == soundRow || position == vibrateRow || position == priorityRow || position == smartRow || position == ringtoneRow || position == callsVibrateRow || position == customResetRow
+            || position == keywordAddRow || position == keywordDeleteAllRow || position >= keywordStartRow && position < keywordEndRow ) {
                 return VIEW_TYPE_TEXT_SETTINGS;
-            } else if (position == popupInfoRow || position == ledInfoRow || position == priorityInfoRow || position == ringtoneInfoRow) {
+            }  else if (position == popupInfoRow || position == ledInfoRow || position == priorityInfoRow || position == ringtoneInfoRow) {
                 return VIEW_TYPE_INFO;
             } else if (position == colorRow) {
                 return VIEW_TYPE_TEXT_COLOR;
