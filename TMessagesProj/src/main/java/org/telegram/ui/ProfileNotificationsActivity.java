@@ -8,6 +8,8 @@
 
 package org.telegram.ui;
 
+import static org.telegram.messenger.AndroidUtilities.dp;
+
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
@@ -23,10 +25,15 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.InputType;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -548,6 +555,31 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                 bundle.putLong("topic_id", topicId);
                 bundle.putInt("is_keyword", 1);
                 presentFragment(new NotificationsSoundActivity(bundle, resourcesProvider));
+            } else if (position == keywordAddRow) {
+                EditText editText = new EditText(context);
+                editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+                editText.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+                editText.setMaxLines(1);
+                editText.setLines(1);
+                editText.setGravity(Gravity.LEFT | Gravity.TOP);
+                editText.setSingleLine(true);
+                editText.setImeOptions(EditorInfo.IME_ACTION_DONE);
+                editText.setPadding(0, dp(4), 0, 0);
+
+                LinearLayout linearLayout = new LinearLayout(context);
+                linearLayout.setOrientation(LinearLayout.VERTICAL);
+                linearLayout.addView(editText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 36, Gravity.TOP | Gravity.LEFT, 24, 6, 24, 0));
+
+                AlertDialog dialog = new AlertDialog.Builder(context, resourcesProvider)
+                        .setTitle("키워드 추가")
+                        .setMessage("추가할 키워드를 입력하세요.")
+                        .setView(linearLayout)
+                        .setPositiveButton(LocaleController.getString(R.string.OK), (d, w) -> {
+
+                        })
+                        .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                        .create();
+                showDialog(dialog);
             }
         });
 
