@@ -109,6 +109,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
     private int priorityInfoRow;
     private int keywordRow;
     private int keywordSoundRow;
+    private int keywordCallRow;
     private int keywordStartRow;
     private int keywordEndRow;
     private int keywordAddRow;
@@ -208,6 +209,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
         priorityInfoRow = rowCount++;
         keywordRow = rowCount++;
         keywordSoundRow = rowCount++;
+        keywordCallRow = rowCount++;
         if (!keywordList.isEmpty()) {
             keywordStartRow = rowCount;
             rowCount += keywordList.size();
@@ -558,6 +560,10 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                 bundle.putLong("topic_id", topicId);
                 bundle.putInt("is_keyword", 1);
                 presentFragment(new NotificationsSoundActivity(bundle, resourcesProvider));
+            } else if (position == keywordCallRow) {
+                TextCheckCell checkCell = (TextCheckCell) view;
+                MessagesController.getNotificationsSettings(currentAccount).edit().putBoolean("keyword_call_" + key, !checkCell.isChecked()).apply();
+                checkCell.setChecked(!checkCell.isChecked());
             } else if (position == keywordAddRow) {
                 EditText editText = new EditText(context);
                 editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
@@ -1040,6 +1046,9 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                     } else if (position == previewRow) {
                         String key = NotificationsController.getSharedPrefKey(dialogId, topicId);
                         checkCell.setTextAndCheck(LocaleController.getString("MessagePreview", R.string.MessagePreview), preferences.getBoolean("content_preview_" + key, true), true);
+                    } else if (position == keywordCallRow) {
+                        String key = NotificationsController.getSharedPrefKey(dialogId, topicId);
+                        checkCell.setTextAndCheck("전화 알림", preferences.getBoolean("keyword_call_" + key, false), true);
                     } else if (position == storiesRow) {
                         String key = NotificationsController.getSharedPrefKey(dialogId, topicId);
                         boolean value = preferences.getBoolean("stories_" + key, isInTop5Peers || preferences.contains("EnableAllStories") && preferences.getBoolean("EnableAllStories", true));
@@ -1117,7 +1126,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                 return VIEW_TYPE_USER;
             } else if (position == avatarSectionRow || position == customResetShadowRow) {
                 return VIEW_TYPE_SHADOW;
-            } else if (position == enableRow || position == previewRow || position == storiesRow) {
+            } else if (position == enableRow || position == previewRow || position == keywordCallRow || position == storiesRow) {
                 return VIEW_TYPE_TEXT_CHECK;
             }
             return VIEW_TYPE_HEADER;
