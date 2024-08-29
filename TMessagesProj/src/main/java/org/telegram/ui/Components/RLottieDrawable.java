@@ -24,7 +24,6 @@ import android.text.TextUtils;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
 
-import com.google.android.exoplayer2.util.Log;
 import com.google.gson.Gson;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -38,14 +37,17 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.utils.BitmapsCache;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RLottieDrawable extends BitmapDrawable implements Animatable, BitmapsCache.Cacheable {
 
@@ -54,6 +56,7 @@ public class RLottieDrawable extends BitmapDrawable implements Animatable, Bitma
     public static native long create(String src, String json, int w, int h, int[] params, boolean precache, int[] colorReplacement, boolean limitFps, int fitzModifier);
 
     public static native long getFramesCount(String src, String json);
+    public static native double getDuration(String src, String json);
 
     protected static native long createWithJson(String json, String name, int[] params, int[] colorReplacement);
 
@@ -126,6 +129,7 @@ public class RLottieDrawable extends BitmapDrawable implements Animatable, Bitma
     protected static final Handler uiHandler = new Handler(Looper.getMainLooper());
     protected volatile boolean isRunning;
     protected volatile boolean isRecycled;
+    protected volatile AtomicInteger readyNodeIndex;
     protected volatile long nativePtr;
     protected volatile long secondNativePtr;
     protected boolean loadingInBackground;
@@ -316,7 +320,7 @@ public class RLottieDrawable extends BitmapDrawable implements Animatable, Bitma
 
     private boolean genCacheSend;
     private boolean allowDrawFramesWhileCacheGenerating;
-
+    private long lastDrawnTime;
     protected Runnable loadFrameRunnable = new Runnable() {
         private long lastUpdate = 0;
 
@@ -368,6 +372,7 @@ public class RLottieDrawable extends BitmapDrawable implements Animatable, Bitma
                     }
                     int result = 0;
                     int framesPerUpdates = shouldLimitFps ? 2 : 1;
+                    final long start = System.currentTimeMillis();
                     if (precache && bitmapsCache != null) {
                         try {
                             result = bitmapsCache.getFrame(currentFrame / framesPerUpdates, backgroundBitmap);
@@ -1341,6 +1346,12 @@ public class RLottieDrawable extends BitmapDrawable implements Animatable, Bitma
 
     public boolean isGeneratingCache() {
         return cacheGenerateTask != null;
+    }
+
+    public float getGeneratingCacheProgress() {
+        if (bitmapsCache == null) return 1f;
+        if (cacheGenerateTask == null) return bitmapsCache.checked ? bitmapsCache.needGenCache() ? 0f : 1f : -2f;
+        return Utilities.clamp((float) bitmapsCache.framesProcessed.get() / getFramesCount(), 1f, 0f);
     }
 
     public void setOnFrameReadyRunnable(Runnable onFrameReadyRunnable) {

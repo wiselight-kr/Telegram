@@ -112,7 +112,7 @@ public class UserObject {
 
     public static String getForcedFirstName(TLRPC.User user) {
         if (user == null || isDeleted(user)) {
-            return "DELETED";
+            return LocaleController.getString(R.string.HiddenName);
         }
         String name = user.first_name;
         if (TextUtils.isEmpty(name)) {
@@ -121,7 +121,7 @@ public class UserObject {
         if (name == null) {
             return LocaleController.getString(R.string.HiddenName);
         }
-        int index = name.indexOf(" ");
+        int index = name.indexOf(" ", 2);
         if (index >= 0) {
             name = name.substring(0, index);
         }
