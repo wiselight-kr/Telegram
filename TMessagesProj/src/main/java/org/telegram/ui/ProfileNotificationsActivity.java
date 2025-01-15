@@ -110,6 +110,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
     private int keywordRow;
     private int keywordSoundRow;
     private int keywordCallRow;
+    private int keywordCallNumberRow;
     private int keywordStartRow;
     private int keywordEndRow;
     private int keywordAddRow;
@@ -210,6 +211,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
         keywordRow = rowCount++;
         keywordSoundRow = rowCount++;
         keywordCallRow = rowCount++;
+        keywordCallNumberRow = rowCount++;
         if (!keywordList.isEmpty()) {
             keywordStartRow = rowCount;
             rowCount += keywordList.size();
@@ -564,6 +566,35 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                 TextCheckCell checkCell = (TextCheckCell) view;
                 MessagesController.getNotificationsSettings(currentAccount).edit().putBoolean("keyword_call_" + key, !checkCell.isChecked()).apply();
                 checkCell.setChecked(!checkCell.isChecked());
+            } else if (position == keywordCallNumberRow) {
+                TextSettingsCell settingsCell = (TextSettingsCell) view;
+
+                EditText editText = new EditText(context);
+                editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+                editText.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+                editText.setMaxLines(1);
+                editText.setLines(1);
+                editText.setGravity(Gravity.LEFT | Gravity.TOP);
+                editText.setSingleLine(true);
+                editText.setImeOptions(EditorInfo.IME_ACTION_DONE);
+                editText.setPadding(0, dp(4), 0, 0);
+
+                LinearLayout linearLayout = new LinearLayout(context);
+                linearLayout.setOrientation(LinearLayout.VERTICAL);
+                linearLayout.addView(editText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 36, Gravity.TOP | Gravity.LEFT, 24, 6, 24, 0));
+
+                AlertDialog dialog = new AlertDialog.Builder(context, resourcesProvider)
+                        .setTitle("받을 전화번호")
+                        .setMessage("전화받을 전화번호를 입력하세요.")
+                        .setView(linearLayout)
+                        .setPositiveButton(LocaleController.getString(R.string.OK), (d, w) -> {
+                            MessagesController.getNotificationsSettings(currentAccount).edit().putString("keyword_call_number_" + key, editText.getText().toString()).apply();
+
+                            settingsCell.setTextAndValue("받을 전화번호", editText.getText().toString(), true);
+                        })
+                        .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                        .create();
+                showDialog(dialog);
             } else if (position == keywordAddRow) {
                 EditText editText = new EditText(context);
                 editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
@@ -947,6 +978,9 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
                                 value = LocaleController.getString("SoundDefault", R.string.SoundDefault);
                             }
                             textCell.setTextAndValue(LocaleController.getString("Sound", R.string.Sound), value, true);
+                        } else if (position == keywordCallNumberRow) {
+                            String value = preferences.getString("keyword_call_number_" + key, "");
+                            textCell.setTextAndValue("받을 전화번호", value, true);
                         } else if (position >= keywordStartRow && position < keywordEndRow) {
                             String keyword = keywordList.get(position - keywordStartRow);
                             textCell.setText(keyword, false);
@@ -1115,7 +1149,7 @@ public class ProfileNotificationsActivity extends BaseFragment implements Notifi
             if (position == generalRow || position == keywordRow || position == popupRow || position == ledRow || position == callsRow) {
                 return VIEW_TYPE_HEADER;
             } else if (position == soundRow || position == vibrateRow || position == priorityRow || position == smartRow || position == ringtoneRow || position == callsVibrateRow || position == customResetRow
-                    || position == keywordSoundRow || position == keywordAddRow || position == keywordDeleteAllRow || position >= keywordStartRow && position < keywordEndRow ) {
+                    || position == keywordSoundRow || position == keywordCallNumberRow || position == keywordAddRow || position == keywordDeleteAllRow || position >= keywordStartRow && position < keywordEndRow ) {
                 return VIEW_TYPE_TEXT_SETTINGS;
             }  else if (position == popupInfoRow || position == ledInfoRow || position == priorityInfoRow || position == ringtoneInfoRow) {
                 return VIEW_TYPE_INFO;
